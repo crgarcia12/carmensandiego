@@ -6,14 +6,24 @@ export interface Session {
   createdAt: string;
 }
 
+export interface StolenTreasure {
+  name: string;
+  description: string;
+}
+
 export interface CaseData {
   id: string;
   title: string;
-  stolenTreasure: string;
-  narrative: string;
+  briefing: string;
+  stolenTreasure: StolenTreasure;
+  currentCity: string;
+  remainingSteps: number;
   status: string;
-  steps: number;
-  maxSteps: number;
+  trail: string[];
+  correctSuspectId: string;
+  currentCityIndex: number;
+  visitedCities: string[];
+  warrantIssued: boolean;
 }
 
 export interface Npc {
@@ -28,46 +38,105 @@ export interface TravelOption {
   description: string;
 }
 
-export interface CityData {
+export interface CityInfo {
   id: string;
   name: string;
-  description: string;
+  region: string;
   continent: string;
+  backgroundKey: string;
+}
+
+export interface CityData {
+  city: CityInfo;
   npcs: Npc[];
   travelOptions: TravelOption[];
+  remainingSteps: number;
+  isFinalCity: boolean;
+}
+
+export interface TravelResult {
+  city: CityInfo;
+  remainingSteps: number;
+  caseStatus: string;
 }
 
 export interface NpcChatResponse {
-  message: string;
-  npcName: string;
+  npcMessage: {
+    npcId: string;
+    npcName: string;
+    text: string;
+    timestamp: string;
+  };
+  chatHistory: {
+    messageCount: number;
+    remainingMessages: number;
+  };
+}
+
+export interface SuspectTraits {
+  hairColor: string;
+  eyeColor: string;
+  hobby: string;
+  favoriteFood: string;
+  vehicle: string;
+  distinguishingFeature: string;
 }
 
 export interface Suspect {
   id: string;
   name: string;
-  traits: string[];
+  photoKey: string;
+  traits: SuspectTraits;
+}
+
+export interface SuspectListResponse {
+  suspects: Suspect[];
 }
 
 export interface WarrantResult {
-  correct: boolean;
-  message: string;
+  result: 'won' | 'lost';
+  caseStatus: string;
+  message?: string;
+  reason?: string;
+  warrant?: { suspectId: string; cityId: string; issuedAt: string };
+  correctSuspect?: { id: string; name: string };
 }
 
 export interface CaseSummary {
-  outcome: 'win' | 'lose';
-  message: string;
+  outcome: 'won' | 'lost';
   citiesVisited: string[];
-  correctSuspect: string;
-  steps: number;
+  stepsUsed: number;
+  totalSteps: number;
+  correctSuspect: { id: string; name: string } | null;
+  playerWarrant: { suspectId: string } | null;
+  stolenTreasure: StolenTreasure;
+}
+
+// Session ID is stored and passed to all /api/cases/* calls
+let _sessionId: string | null = null;
+
+export function setSessionId(id: string | null) {
+  _sessionId = id;
+}
+
+export function getSessionId(): string | null {
+  return _sessionId;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> || {}),
+  };
+
+  // Auto-attach session ID for /api/cases/* endpoints
+  if (path.startsWith('/api/cases') && _sessionId && !headers['X-Session-Id']) {
+    headers['X-Session-Id'] = _sessionId;
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers,
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -100,7 +169,7 @@ export const api = {
     return request(`/api/cases/${caseId}/city`);
   },
 
-  travel(caseId: string, cityId: string): Promise<CityData> {
+  travel(caseId: string, cityId: string): Promise<TravelResult> {
     return request(`/api/cases/${caseId}/travel`, {
       method: 'POST',
       body: JSON.stringify({ cityId }),
@@ -114,7 +183,7 @@ export const api = {
     });
   },
 
-  getSuspects(caseId: string): Promise<Suspect[]> {
+  getSuspects(caseId: string): Promise<SuspectListResponse> {
     return request(`/api/cases/${caseId}/suspects`);
   },
 

@@ -22,10 +22,10 @@ export default function SuspectCard({ suspect, onWarrant, disabled }: SuspectCar
       </h4>
 
       <ul className="space-y-1 mb-3">
-        {suspect.traits.map((trait, i) => (
-          <li key={i} className="text-xs text-gray-300 flex items-start gap-1">
+        {Object.entries(suspect.traits).map(([key, value]) => (
+          <li key={key} className="text-xs text-gray-300 flex items-start gap-1">
             <span className="text-yellow-500">▸</span>
-            {trait}
+            <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span> {value}
           </li>
         ))}
       </ul>

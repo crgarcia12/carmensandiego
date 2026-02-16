@@ -36,7 +36,7 @@ export default function DossierPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <GameNav steps={caseData?.steps} maxSteps={caseData?.maxSteps} caseId={caseId} showDossier={false} />
+      <GameNav remainingSteps={caseData?.remainingSteps} caseId={caseId} showDossier={false} />
 
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">

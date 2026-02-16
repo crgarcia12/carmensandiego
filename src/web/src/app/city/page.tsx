@@ -57,7 +57,7 @@ export default function CityPage() {
   if (loading && !cityData) {
     return (
       <div className="min-h-screen bg-gray-950 text-white">
-        <GameNav steps={caseData?.steps} maxSteps={caseData?.maxSteps} caseId={caseId} />
+        <GameNav remainingSteps={caseData?.remainingSteps} caseId={caseId} />
         <div className="flex items-center justify-center h-96">
           <p className="text-yellow-400 animate-pulse" style={{ fontFamily: 'monospace' }}>Arriving at destination...</p>
         </div>
@@ -67,13 +67,13 @@ export default function CityPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <GameNav steps={caseData?.steps} maxSteps={caseData?.maxSteps} caseId={caseId} />
+      <GameNav remainingSteps={caseData?.remainingSteps} caseId={caseId} />
 
       {cityData && (
         <CityBackground
-          cityName={cityData.name}
-          description={cityData.description}
-          continent={cityData.continent}
+          cityName={cityData.city.name}
+          description={`${cityData.city.region}, ${cityData.city.continent}`}
+          continent={cityData.city.continent}
         />
       )}
 

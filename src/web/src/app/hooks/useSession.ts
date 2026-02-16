@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { api, Session } from '../lib/api';
+import { api, Session, setSessionId } from '../lib/api';
 
 const SESSION_KEY = 'carmen-session';
 const CASE_KEY = 'carmen-case';
@@ -21,13 +21,16 @@ export function useSession() {
     if (stored) {
       try {
         const parsed: StoredState = JSON.parse(stored);
+        setSessionId(parsed.sessionId);
         api.getSession(parsed.sessionId)
           .then((s) => {
             setSession(s);
+            setSessionId(s.id);
             if (parsed.caseId) setCaseId(parsed.caseId);
           })
           .catch(() => {
             localStorage.removeItem(SESSION_KEY);
+            setSessionId(null);
           })
           .finally(() => setLoading(false));
       } catch {
@@ -47,6 +50,7 @@ export function useSession() {
   const createSession = useCallback(async () => {
     const s = await api.createSession();
     setSession(s);
+    setSessionId(s.id);
     persist(s.id);
     return s;
   }, [persist]);
@@ -62,6 +66,7 @@ export function useSession() {
     localStorage.removeItem(CASE_KEY);
     setSession(null);
     setCaseId(null);
+    setSessionId(null);
   }, []);
 
   return { session, caseId, loading, createSession, storeCaseId, clearSession };

@@ -20,8 +20,8 @@ export default function BriefingPage() {
   }, [caseId, caseData, loadCase]);
 
   useEffect(() => {
-    if (!caseData?.narrative) return;
-    const text = caseData.narrative;
+    if (!caseData?.briefing) return;
+    const text = caseData.briefing;
     let i = 0;
     setDisplayedText('');
     setTypewriterDone(false);
@@ -37,11 +37,11 @@ export default function BriefingPage() {
     }, 30);
 
     return () => clearInterval(interval);
-  }, [caseData?.narrative]);
+  }, [caseData?.briefing]);
 
   const handleSkip = () => {
-    if (caseData?.narrative) {
-      setDisplayedText(caseData.narrative);
+    if (caseData?.briefing) {
+      setDisplayedText(caseData.briefing);
       setTypewriterDone(true);
     }
   };
@@ -76,7 +76,7 @@ export default function BriefingPage() {
             <p className="text-xs uppercase tracking-wider text-gray-400 mb-1" style={{ fontFamily: 'monospace' }}>
               Stolen Treasure
             </p>
-            <p className="text-lg text-red-400 font-semibold">🏛️ {caseData.stolenTreasure}</p>
+            <p className="text-lg text-red-400 font-semibold">🏛️ {caseData.stolenTreasure.name}</p>
           </div>
 
           <div className="bg-gray-800 rounded-md p-4 mb-6 border border-gray-700 min-h-[120px]">

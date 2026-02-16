@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { api, CaseData, CityData, Suspect, CaseSummary, WarrantResult } from '../lib/api';
+import { api, CaseData, CityData, Suspect, CaseSummary, WarrantResult, TravelResult } from '../lib/api';
 
 export function useGame() {
   const [caseData, setCaseData] = useState<CaseData | null>(null);
@@ -61,11 +61,15 @@ export function useGame() {
     setLoading(true);
     setError(null);
     try {
-      const city = await api.travel(caseId, cityId);
+      const result = await api.travel(caseId, cityId);
+      // After travel, reload full city data and case data
+      const [city, c] = await Promise.all([
+        api.getCity(caseId),
+        api.getCase(caseId),
+      ]);
       setCityData(city);
-      const c = await api.getCase(caseId);
       setCaseData(c);
-      return city;
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to travel');
       return null;
@@ -78,9 +82,9 @@ export function useGame() {
     setLoading(true);
     setError(null);
     try {
-      const s = await api.getSuspects(caseId);
-      setSuspects(s);
-      return s;
+      const response = await api.getSuspects(caseId);
+      setSuspects(response.suspects);
+      return response.suspects;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load suspects');
       return [];

@@ -31,8 +31,8 @@ export function useNpcChat() {
       const npcMsg: NpcMessage = {
         id: `npc-${Date.now()}`,
         role: 'npc',
-        content: res.message,
-        npcName: res.npcName || npcName,
+        content: res.npcMessage.text,
+        npcName: res.npcMessage.npcName || npcName,
       };
       setMessages((prev) => [...prev, npcMsg]);
     } catch {

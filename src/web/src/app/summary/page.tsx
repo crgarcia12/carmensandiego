@@ -33,7 +33,7 @@ export default function SummaryPage() {
     );
   }
 
-  const isWin = summary.outcome === 'win';
+  const isWin = summary.outcome === 'won';
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -50,7 +50,11 @@ export default function SummaryPage() {
           >
             {isWin ? 'Case Closed!' : 'Case Failed'}
           </h2>
-          <p className="text-gray-200 text-sm leading-relaxed mb-6">{summary.message}</p>
+          <p className="text-gray-200 text-sm leading-relaxed mb-6">
+            {isWin
+              ? `You caught the thief and recovered the ${summary.stolenTreasure.name}!`
+              : `The ${summary.stolenTreasure.name} was not recovered. The correct suspect was ${summary.correctSuspect?.name ?? 'unknown'}.`}
+          </p>
         </div>
 
         <div className="mt-6 space-y-4">
@@ -61,11 +65,11 @@ export default function SummaryPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-400">Steps Taken</p>
-                <p className="text-white font-bold">{summary.steps}</p>
+                <p className="text-white font-bold">{summary.stepsUsed} / {summary.totalSteps}</p>
               </div>
               <div>
                 <p className="text-gray-400">Correct Suspect</p>
-                <p className="text-yellow-400 font-bold">{summary.correctSuspect}</p>
+                <p className="text-yellow-400 font-bold">{summary.correctSuspect?.name ?? 'Unknown'}</p>
               </div>
             </div>
           </div>

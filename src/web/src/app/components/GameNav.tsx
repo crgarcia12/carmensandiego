@@ -5,13 +5,12 @@ import Link from 'next/link';
 import StepCounter from './StepCounter';
 
 interface GameNavProps {
-  steps?: number;
-  maxSteps?: number;
+  remainingSteps?: number;
   caseId?: string | null;
   showDossier?: boolean;
 }
 
-export default function GameNav({ steps, maxSteps, caseId, showDossier = true }: GameNavProps) {
+export default function GameNav({ remainingSteps, caseId, showDossier = true }: GameNavProps) {
   return (
     <nav className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b-2 border-yellow-400">
       <Link href="/" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
@@ -21,8 +20,8 @@ export default function GameNav({ steps, maxSteps, caseId, showDossier = true }:
         </span>
       </Link>
 
-      {steps !== undefined && maxSteps !== undefined && (
-        <StepCounter steps={steps} maxSteps={maxSteps} />
+      {remainingSteps !== undefined && (
+        <StepCounter remainingSteps={remainingSteps} />
       )}
 
       {showDossier && caseId && (
