@@ -1,0 +1,31 @@
+{
+  "name": "nextjs-dotnet",
+  "version": "1.0.0",
+  "description": "A spec2cloud shell template for building full-stack applications with: - **Frontend**: Next.js (TypeScript, App Router) - **Backend**: .NET 10 (Minimal API) - **Deployment**: Azure Container Apps via AZD - **Testing**: Playwright (e2e) + Cucumber.js (Gherkin) + xUnit (.NET)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "cd src/web && npm run dev",
+    "build": "cd src/web && npm run build",
+    "aspire": "dotnet run --project src/AppHost",
+    "test:e2e": "npx playwright test --config=e2e/playwright.config.ts",
+    "test:cucumber": "npx cucumber-js",
+    "test:all": "npm run test:cucumber && npm run test:e2e",
+    "docs:generate": "npx ts-node scripts/generate-docs.ts",
+    "docs:serve": "npm run docs:generate && mkdocs serve",
+    "docs:build": "npm run docs:generate && mkdocs build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.6.0",
+    "@playwright/test": "^1.58.2",
+    "ts-node": "^10.9.2",
+    "@cucumber/gherkin": "^29.0.0",
+    "@cucumber/messages": "^26.0.0"
+  }
+}
