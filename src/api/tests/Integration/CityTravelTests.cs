@@ -10,13 +10,10 @@ namespace Api.Tests.Integration;
 public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
-    private const string TestSessionId = "sess-00000000-0000-0000-0000-000000000001";
-    private const string TestCaseId = "case-travel-001";
 
     public CityTravelTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
-        _client.DefaultRequestHeaders.Add("X-Session-Id", TestSessionId);
     }
 
     // Derived from: city-travel.feature — "Viewing the current city shows background and NPCs"
@@ -24,14 +21,14 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_ReturnCityInfoAndNpcs_When_GettingCurrentCity()
     {
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+
         // Act
-        var response = await _client.GetAsync($"/api/cases/{TestCaseId}/city");
+        var json = await TestHelper.GetCityAsync(_client, sessionId, caseId);
 
-        // Assert — will fail until city endpoint is implemented
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadAsStringAsync();
-        var json = JsonDocument.Parse(body).RootElement;
-
+        // Assert
         var city = json.GetProperty("city");
         city.GetProperty("id").GetString().Should().NotBeNullOrEmpty();
         city.GetProperty("name").GetString().Should().NotBeNullOrEmpty();
@@ -57,14 +54,14 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Show3TravelOptions_When_GettingCurrentCity()
     {
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+
         // Act
-        var response = await _client.GetAsync($"/api/cases/{TestCaseId}/city");
+        var json = await TestHelper.GetCityAsync(_client, sessionId, caseId);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadAsStringAsync();
-        var json = JsonDocument.Parse(body).RootElement;
-
         var travelOptions = json.GetProperty("travelOptions");
         travelOptions.GetArrayLength().Should().Be(3);
         foreach (var option in travelOptions.EnumerateArray())
@@ -81,16 +78,22 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task Should_DecrementSteps_When_TravelingToValidCity()
     {
         // Arrange
-        var request = new { cityId = "tokyo" };
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+
+        // Get travel options to pick a valid destination
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        var options = cityJson.GetProperty("travelOptions").EnumerateArray().ToList();
+        var targetCityId = options[0].GetProperty("cityId").GetString()!;
 
         // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/travel", request);
+        var response = await TestHelper.TravelAsync(_client, sessionId, caseId, targetCityId);
 
-        // Assert — will fail until travel endpoint is implemented
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
-        json.GetProperty("city").GetProperty("id").GetString().Should().Be("tokyo");
+        json.GetProperty("city").GetProperty("id").GetString().Should().Be(targetCityId);
         json.GetProperty("remainingSteps").GetInt32().Should().BeLessThan(10);
         json.GetProperty("caseStatus").GetString().Should().Be("active");
     }
@@ -100,18 +103,20 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return409_When_NoRemainingSteps()
     {
-        // Arrange — case has 0 remaining steps
-        var request = new { cityId = "tokyo" };
+        // Arrange — create case and exhaust all steps
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.ExhaustStepsAsync(_client, sessionId, caseId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/travel", request);
+        // Act — try to travel again
+        var response = await TestHelper.TravelAsync(_client, sessionId, caseId, "tokyo");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
-        json.GetProperty("error").GetString().Should().Contain("No remaining steps");
-        json.GetProperty("code").GetString().Should().Be("NO_STEPS");
+        json.GetProperty("error").GetString().Should().Contain("Case is already completed");
+        json.GetProperty("code").GetString().Should().Be("CASE_COMPLETED");
     }
 
     // Derived from: city-travel.feature — "Cannot travel to a city not in the offered options"
@@ -119,11 +124,24 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return400_When_DestinationNotInOptions()
     {
-        // Arrange — london is not in the travel options
-        var request = new { cityId = "london" };
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+
+        // Get travel options so we can pick a city NOT in them
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        var options = cityJson.GetProperty("travelOptions")
+            .EnumerateArray()
+            .Select(o => o.GetProperty("cityId").GetString())
+            .ToHashSet();
+        var currentCity = cityJson.GetProperty("city").GetProperty("id").GetString();
+
+        // Pick a city not in options and not current city
+        var allCities = new[] { "bangkok", "tokyo", "paris", "cairo", "rio", "new-york", "london", "sydney", "mumbai", "moscow", "nairobi", "istanbul", "mexico-city", "beijing", "rome" };
+        var invalidCity = allCities.First(c => !options.Contains(c) && c != currentCity);
 
         // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/travel", request);
+        var response = await TestHelper.TravelAsync(_client, sessionId, caseId, invalidCity);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -138,11 +156,16 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return400_When_TravelingToCurrentCity()
     {
-        // Arrange — player is already in bangkok
-        var request = new { cityId = "bangkok" };
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/travel", request);
+        // Get the current city
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        var currentCityId = cityJson.GetProperty("city").GetProperty("id").GetString()!;
+
+        // Act — travel to current city
+        var response = await TestHelper.TravelAsync(_client, sessionId, caseId, currentCityId);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -157,11 +180,19 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_LoseCase_When_StepsReachZero()
     {
-        // Arrange — case has 1 remaining step, no warrant issued
-        var request = new { cityId = "tokyo" };
+        // Arrange — create case and travel until 1 step remains
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.TravelUntilOneStepAsync(_client, sessionId, caseId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/travel", request);
+        // Get a valid travel option for the final move
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        var options = cityJson.GetProperty("travelOptions").EnumerateArray().ToList();
+        options.Should().NotBeEmpty("should have travel options with 1 step remaining");
+        var targetCityId = options[0].GetProperty("cityId").GetString()!;
+
+        // Act — this travel should consume the last step
+        var response = await TestHelper.TravelAsync(_client, sessionId, caseId, targetCityId);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -176,14 +207,15 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_ReturnEmptyTravelOptions_When_AtFinalCity()
     {
-        // Arrange — player is at final city
+        // Arrange — create case and travel to final city
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.TravelToFinalCityAsync(_client, sessionId, caseId);
+
         // Act
-        var response = await _client.GetAsync($"/api/cases/{TestCaseId}/city");
+        var json = await TestHelper.GetCityAsync(_client, sessionId, caseId);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadAsStringAsync();
-        var json = JsonDocument.Parse(body).RootElement;
         json.GetProperty("travelOptions").GetArrayLength().Should().Be(0);
         json.GetProperty("isFinalCity").GetBoolean().Should().BeTrue();
     }
@@ -193,11 +225,13 @@ public class CityTravelTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return409_When_TravelOnCompletedCase()
     {
-        // Arrange — case is already won/lost
-        var request = new { cityId = "tokyo" };
+        // Arrange — create case and lose it by exhausting steps
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.ExhaustStepsAsync(_client, sessionId, caseId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/travel", request);
+        // Act — attempt travel on completed case
+        var response = await TestHelper.TravelAsync(_client, sessionId, caseId, "tokyo");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);

@@ -10,12 +10,10 @@ namespace Api.Tests.Integration;
 public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
-    private const string TestSessionId = "sess-00000000-0000-0000-0000-000000000001";
 
     public CaseSystemTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
-        _client.DefaultRequestHeaders.Add("X-Session-Id", TestSessionId);
     }
 
     // Derived from: case-system.feature — "Starting a new case returns briefing info"
@@ -23,10 +21,15 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return201WithCaseInfo_When_CreatingNewCase()
     {
-        // Act
-        var response = await _client.PostAsync("/api/cases", null);
+        // Arrange — create own session
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
 
-        // Assert — will fail until POST /api/cases is implemented
+        // Act
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/cases");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
+
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
@@ -45,8 +48,13 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_HaveCorrectStructure_When_CaseCreated()
     {
+        // Arrange — create own session
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+
         // Act
-        var response = await _client.PostAsync("/api/cases", null);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/cases");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -75,13 +83,19 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_ReturnWinSummary_When_CaseWon()
     {
-        // Arrange — assume case-win-001 exists in final city with correct suspect
-        var caseId = "case-win-001";
+        // Arrange — create session, case, travel to final city, win with correct warrant
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.TravelToFinalCityAsync(_client, sessionId, caseId);
+        var warrantResp = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-carmen");
+        warrantResp.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Act
-        var response = await _client.GetAsync($"/api/cases/{caseId}/summary");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cases/{caseId}/summary");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
-        // Assert — will fail until summary endpoint and win logic are implemented
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
@@ -100,11 +114,15 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_ReturnLoseSummary_When_StepsExhausted()
     {
-        // Arrange — assume case-lose-001 exists with 0 steps remaining
-        var caseId = "case-lose-001";
+        // Arrange — create session, case, exhaust all steps
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.ExhaustStepsAsync(_client, sessionId, caseId);
 
         // Act
-        var response = await _client.GetAsync($"/api/cases/{caseId}/summary");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cases/{caseId}/summary");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -122,8 +140,13 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return404_When_CaseNotFound()
     {
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+
         // Act
-        var response = await _client.GetAsync("/api/cases/case-nonexistent");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/cases/case-nonexistent");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -137,9 +160,14 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return409_When_ActiveCaseAlreadyExists()
     {
-        // Arrange — session already has an active case
-        // Act
-        var response = await _client.PostAsync("/api/cases", null);
+        // Arrange — create session with an active case
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        await TestHelper.CreateCaseAsync(_client, sessionId);
+
+        // Act — try to create a second case
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/cases");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -153,12 +181,17 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return409_When_ActionsOnCompletedCase()
     {
-        // Arrange — case is already completed
-        var caseId = "case-done-001";
-        var travelRequest = new { cityId = "tokyo" };
+        // Arrange — create session, case, lose it by exhausting steps
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.ExhaustStepsAsync(_client, sessionId, caseId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{caseId}/travel", travelRequest);
+        // Act — try to travel on the completed case
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/cases/{caseId}/travel");
+        request.Headers.Add("X-Session-Id", sessionId);
+        request.Content = JsonContent.Create(new { cityId = "tokyo" });
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -172,11 +205,14 @@ public class CaseSystemTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return400_When_SummaryRequestedForActiveCase()
     {
-        // Arrange — case is still active
-        var caseId = "case-active-001";
+        // Arrange — create session and active case
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
         // Act
-        var response = await _client.GetAsync($"/api/cases/{caseId}/summary");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cases/{caseId}/summary");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

@@ -10,13 +10,10 @@ namespace Api.Tests.Integration;
 public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
-    private const string TestSessionId = "sess-00000000-0000-0000-0000-000000000001";
-    private const string TestCaseId = "case-warrant-001";
 
     public SuspectDossierTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
-        _client.DefaultRequestHeaders.Add("X-Session-Id", TestSessionId);
     }
 
     // Derived from: suspect-dossier.feature — "Viewing the full suspect dossier returns 10 or more suspects"
@@ -24,10 +21,16 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_ReturnAtLeast10Suspects_When_GettingDossier()
     {
-        // Act
-        var response = await _client.GetAsync($"/api/cases/{TestCaseId}/suspects");
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
-        // Assert — will fail until suspects endpoint is implemented
+        // Act
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cases/{caseId}/suspects");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
+
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
@@ -40,8 +43,14 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_HaveAllRequiredTraits_ForEachSuspect()
     {
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+
         // Act
-        var response = await _client.GetAsync($"/api/cases/{TestCaseId}/suspects");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cases/{caseId}/suspects");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -70,13 +79,15 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_WinCase_When_CorrectWarrantInCorrectCity()
     {
-        // Arrange — player in final trail city, correct suspect is suspect-carmen
-        var request = new { suspectId = "suspect-carmen" };
+        // Arrange — create case, travel to final city, then issue correct warrant
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.TravelToFinalCityAsync(_client, sessionId, caseId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/warrant", request);
+        // Act — issue warrant for the correct suspect (all generated cases use suspect-carmen)
+        var response = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-carmen");
 
-        // Assert — will fail until warrant endpoint is implemented
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
@@ -93,11 +104,12 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_LoseCase_When_WrongSuspect()
     {
-        // Arrange — correct suspect is suspect-carmen, but player picks suspect-vic
-        var request = new { suspectId = "suspect-vic" };
+        // Arrange — create case, issue wrong warrant
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/warrant", request);
+        // Act — issue warrant for wrong suspect
+        var response = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-vic");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -115,11 +127,12 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_LoseCase_When_RightSuspectWrongCity()
     {
-        // Arrange — player is in tokyo (not the final trail city)
-        var request = new { suspectId = "suspect-carmen" };
+        // Arrange — create case (player starts at first city, not final city)
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/warrant", request);
+        // Act — issue warrant for correct suspect but from wrong city (starting city)
+        var response = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-carmen");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -135,11 +148,14 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return409_When_WarrantAlreadyIssued()
     {
-        // Arrange — warrant was already issued
-        var request = new { suspectId = "suspect-vic" };
+        // Arrange — create case and issue a warrant first
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var firstWarrant = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-vic");
+        firstWarrant.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/warrant", request);
+        // Act — try to issue a second warrant
+        var response = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-vic");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -155,10 +171,11 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task Should_Return400_When_SuspectIdInvalid()
     {
         // Arrange
-        var request = new { suspectId = "suspect-nonexistent" };
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
         // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/warrant", request);
+        var response = await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-nonexistent");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -173,11 +190,15 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_Return400_When_SuspectIdMissing()
     {
-        // Arrange — empty body, no suspectId
-        var request = new { };
+        // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync($"/api/cases/{TestCaseId}/warrant", request);
+        // Act — send empty body
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/cases/{caseId}/warrant");
+        request.Headers.Add("X-Session-Id", sessionId);
+        request.Content = JsonContent.Create(new { });
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -192,9 +213,15 @@ public class SuspectDossierTests : IClassFixture<WebApplicationFactory<Program>>
     [Trait("Category", "Integration")]
     public async Task Should_ReturnDossier_When_CaseCompleted()
     {
-        // Arrange — case is already completed (won)
+        // Arrange — create case, complete it by issuing a warrant
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-vic");
+
         // Act
-        var response = await _client.GetAsync($"/api/cases/{TestCaseId}/suspects");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cases/{caseId}/suspects");
+        request.Headers.Add("X-Session-Id", sessionId);
+        var response = await _client.SendAsync(request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

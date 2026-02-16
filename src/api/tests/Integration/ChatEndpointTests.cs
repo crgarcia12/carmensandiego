@@ -10,14 +10,18 @@ namespace Api.Tests.Integration;
 public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
-    private const string TestSessionId = "sess-00000000-0000-0000-0000-000000000001";
-    private const string TestCaseId = "case-chat-001";
-    private const string TestNpcId = "npc-somchai";
 
     public NpcConversationTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
-        _client.DefaultRequestHeaders.Add("X-Session-Id", TestSessionId);
+    }
+
+    /// <summary>Gets an NPC ID in the current city for the given case.</summary>
+    private async Task<string> GetNpcInCurrentCityAsync(string sessionId, string caseId)
+    {
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        var npcs = cityJson.GetProperty("npcs").EnumerateArray().ToList();
+        return npcs[0].GetProperty("id").GetString()!;
     }
 
     // Derived from: npc-conversations.feature — "Sending a message to an NPC returns an AI response"
@@ -26,17 +30,18 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Should_ReturnNpcResponse_When_SendingValidMessage()
     {
         // Arrange
-        var request = new { message = "Have you seen anyone suspicious?" };
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var npcId = await GetNpcInCurrentCityAsync(sessionId, caseId);
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/{TestNpcId}/chat", request);
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, "Have you seen anyone suspicious?");
 
-        // Assert — will fail until NPC chat endpoint is implemented
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
-        json.GetProperty("npcMessage").GetProperty("npcId").GetString().Should().Be(TestNpcId);
+        json.GetProperty("npcMessage").GetProperty("npcId").GetString().Should().Be(npcId);
         json.GetProperty("npcMessage").GetProperty("npcName").GetString().Should().NotBeNullOrEmpty();
         json.GetProperty("npcMessage").GetProperty("text").GetString().Should().NotBeNullOrEmpty();
         json.GetProperty("npcMessage").TryGetProperty("timestamp", out _).Should().BeTrue();
@@ -50,12 +55,13 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Should_Return400_When_MessageExceeds280Characters()
     {
         // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var npcId = await GetNpcInCurrentCityAsync(sessionId, caseId);
         var longMessage = new string('A', 281);
-        var request = new { message = longMessage };
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/{TestNpcId}/chat", request);
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, longMessage);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -71,12 +77,13 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Should_Accept_When_MessageIsExactly280Characters()
     {
         // Arrange
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var npcId = await GetNpcInCurrentCityAsync(sessionId, caseId);
         var exactMessage = new string('A', 280);
-        var request = new { message = exactMessage };
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/{TestNpcId}/chat", request);
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, exactMessage);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -90,16 +97,21 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     [Trait("Category", "Integration")]
     public async Task Should_Return429_When_MessageCapReached()
     {
-        // Arrange — simulate 20 messages already exchanged
-        // The 21st player message (after 10 player + 10 NPC = 20 total) should be rejected
-        var request = new { message = "One more question" };
+        // Arrange — send 10 messages to fill the cap (10 player + 10 NPC = 20 total)
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var npcId = await GetNpcInCurrentCityAsync(sessionId, caseId);
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/{TestNpcId}/chat", request);
+        for (int i = 0; i < 10; i++)
+        {
+            var resp = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, $"Message {i}");
+            resp.StatusCode.Should().Be(HttpStatusCode.OK, $"Pre-fill message {i} failed");
+        }
 
-        // Assert — will fail until chat cap logic is implemented
-        // In a full setup, this test would send 10 messages first, then the 11th would be rejected
+        // Act — 11th message should be rejected (20 messages already in history)
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, "One more question");
+
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         var body = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(body).RootElement;
@@ -113,11 +125,12 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Should_Return400_When_MessageIsEmpty()
     {
         // Arrange
-        var request = new { message = "" };
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var npcId = await GetNpcInCurrentCityAsync(sessionId, caseId);
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/{TestNpcId}/chat", request);
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, "");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -133,11 +146,11 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Should_Return404_When_NpcDoesNotExist()
     {
         // Arrange
-        var request = new { message = "Hello" };
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/npc-nonexistent/chat", request);
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, "npc-nonexistent", "Hello");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -152,12 +165,21 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     [Trait("Category", "Integration")]
     public async Task Should_Return400_When_NpcIsInDifferentCity()
     {
-        // Arrange — npc-yuki is in tokyo, player is in bangkok
-        var request = new { message = "Hello" };
+        // Arrange — get the NPC list for current city, then pick an NPC NOT in that city
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var cityJson = await TestHelper.GetCityAsync(_client, sessionId, caseId);
+        var currentCityNpcs = cityJson.GetProperty("npcs")
+            .EnumerateArray()
+            .Select(n => n.GetProperty("id").GetString())
+            .ToHashSet();
+
+        // Pick an NPC that exists but is NOT in the current city
+        var allNpcs = new[] { "npc-somchai", "npc-yuki", "npc-pierre", "npc-hassan", "npc-carlos", "npc-mike", "npc-arthur", "npc-bruce", "npc-priya", "npc-ivan" };
+        var wrongCityNpc = allNpcs.First(n => !currentCityNpcs.Contains(n));
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/npc-yuki/chat", request);
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, wrongCityNpc, "Hello");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -172,12 +194,15 @@ public class NpcConversationTests : IClassFixture<WebApplicationFactory<Program>
     [Trait("Category", "Integration")]
     public async Task Should_Return409_When_CaseIsCompleted()
     {
-        // Arrange — case is already won/lost
-        var request = new { message = "Hello" };
+        // Arrange — create case, get NPC, then lose the case
+        var sessionId = await TestHelper.CreateSessionAsync(_client);
+        var (caseId, _) = await TestHelper.CreateCaseAsync(_client, sessionId);
+        var npcId = await GetNpcInCurrentCityAsync(sessionId, caseId);
+        // Lose the case by issuing wrong warrant
+        await TestHelper.IssueWarrantAsync(_client, sessionId, caseId, "suspect-vic");
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/cases/{TestCaseId}/npcs/{TestNpcId}/chat", request);
+        // Act — try to chat on completed case
+        var response = await TestHelper.ChatAsync(_client, sessionId, caseId, npcId, "Hello");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
