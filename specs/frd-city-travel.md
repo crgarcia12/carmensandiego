@@ -5,7 +5,7 @@
 | **Feature** | City & Travel |
 | **PRD Refs** | FR-2.1, FR-2.2, FR-2.3, FR-2.4 |
 | **Dependencies** | frd-case-system |
-| **Status** | Draft |
+| **Status** | Approved |
 
 ## 1. Overview
 

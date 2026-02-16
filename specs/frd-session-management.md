@@ -5,7 +5,7 @@
 | **Feature** | Session Management |
 | **PRD Refs** | FR-6.1, FR-6.2, FR-6.3, FR-6.4 |
 | **Dependencies** | None (foundation) |
-| **Status** | Draft |
+| **Status** | Approved |
 
 ## 1. Overview
 

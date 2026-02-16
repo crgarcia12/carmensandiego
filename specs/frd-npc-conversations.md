@@ -5,7 +5,7 @@
 | **Feature** | NPC Conversations |
 | **PRD Refs** | FR-3.1, FR-3.2, FR-3.3, FR-3.4, FR-3.5 |
 | **Dependencies** | frd-case-system, frd-city-travel |
-| **Status** | Draft |
+| **Status** | Approved |
 
 ## 1. Overview
 

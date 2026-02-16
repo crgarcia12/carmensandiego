@@ -5,7 +5,7 @@
 | **Feature** | Game User Interface |
 | **PRD Refs** | FR-5.1, FR-5.2, FR-5.3, FR-5.4, FR-5.5 |
 | **Dependencies** | frd-case-system, frd-city-travel, frd-npc-conversations, frd-suspect-dossier, frd-session-management |
-| **Status** | Draft |
+| **Status** | Approved |
 
 ## 1. Overview
 

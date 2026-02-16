@@ -5,7 +5,7 @@
 | **Feature** | Suspect Dossier & Warrants |
 | **PRD Refs** | FR-4.1, FR-4.2, FR-4.3, FR-4.4 |
 | **Dependencies** | frd-case-system |
-| **Status** | Draft |
+| **Status** | Approved |
 
 ## 1. Overview
 

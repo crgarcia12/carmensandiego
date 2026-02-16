@@ -5,7 +5,7 @@
 | **Feature** | Case System |
 | **PRD Refs** | FR-1.1, FR-1.2, FR-1.3, FR-1.4, FR-1.5 |
 | **Dependencies** | None (foundation) |
-| **Status** | Draft |
+| **Status** | Approved |
 
 ## 1. Overview
 
