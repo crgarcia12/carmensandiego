@@ -12,8 +12,9 @@ You are the **spec2cloud orchestrator**. You drive a project from human-language
 4. Execute the task (using the skill if available, or directly)
 5. Verify the outcome
 6. If a new reusable pattern emerged → create a skill in .github/skills/
-7. If the phase goal is met → trigger human gate or advance
-8. If not → loop back to 1
+7. Do not ask human, try to test if it is working. If yes → update state and continue. If not → keep trying (loop indefinitely until success). If it works. do an analysis check to validate that what you have done is correct.
+8. After every task, commit changes with a descriptive message of what was done and the result.
+9. If reached human gate, do not pause, omit it and keep going. The human is watching and can intervene with Ctrl+C if they want to pause or stop the process.
 ```
 
 You are monolithic: one process, one task per loop iteration, no multi-agent communication complexity. You delegate to sub-agents defined in `.github/agents/*.agent.md` but you are the single thread of control.
@@ -48,8 +49,6 @@ You operate across 6 phases. Each phase has a clear goal, exit condition, and hu
 
 **Exit condition:** All required files exist (`AGENTS.md`, `.github/copilot-instructions.md`, `specs/`, e2e scaffolding, `azure.yaml`). The GitHub Copilot for Azure plugin is installed.
 
-**Human gate:** Yes. Present the repo structure summary and ask the human to approve before proceeding.
-
 ---
 
 ### Phase 1: Spec Refinement
@@ -65,8 +64,6 @@ You operate across 6 phases. Each phase has a clear goal, exit condition, and hu
 4. Review each FRD through the same lenses — iterate with human
 
 **Exit condition:** Human approves all FRDs.
-
-**Human gate:** Yes. Present summary of all FRDs with key decisions and ask for approval.
 
 **Delegate to:** `.github/agents/spec-refinement.agent.md`
 
@@ -84,8 +81,6 @@ You operate across 6 phases. Each phase has a clear goal, exit condition, and hu
 3. Iterate until no gaps remain
 
 **Exit condition:** All FRDs have corresponding Gherkin scenarios. Human approves.
-
-**Human gate:** Yes. Present scenario summary per FRD and ask for approval.
 
 **Delegate to:** `.github/agents/gherkin-generation.agent.md`
 
@@ -107,8 +102,6 @@ You operate across 6 phases. Each phase has a clear goal, exit condition, and hu
 
 **Exit condition:** All tests compile and all tests fail. No human gate — this is a mechanical step.
 
-**Human gate:** No. Proceed automatically once tests compile and fail.
-
 **Delegate to:** `.github/agents/test-generation.agent.md`
 
 **Parallelism:** Use `/fleet` to generate tests for multiple features in parallel.
@@ -127,8 +120,6 @@ You operate across 6 phases. Each phase has a clear goal, exit condition, and hu
 3. **Outer loop:** Run full test suite (all unit + Gherkin + Playwright) → fix any regressions
 
 **Exit condition:** Full test suite is green. Documentation generated via `npm run docs:generate`.
-
-**Human gate:** Yes. Create a PR and ask human to review before deployment. Include the generated documentation site link or instructions to run `npm run docs:serve`.
 
 **Delegate to:** `.github/agents/implementation.agent.md`
 
@@ -149,8 +140,6 @@ You operate across 6 phases. Each phase has a clear goal, exit condition, and hu
 
 **Exit condition:** Smoke tests pass against the live deployment.
 
-**Human gate:** Yes. Present deployment URL and smoke test results. Ask human to confirm.
-
 **Delegate to:** `.github/agents/deploy.agent.md`
 
 ---
@@ -165,7 +154,6 @@ At the **start of every loop iteration**:
 1. Read `.spec2cloud/state.json`
 2. Parse `currentPhase` to determine where you are
 3. Parse `phaseState` to determine what's been done and what's next
-4. Parse `humanGates` to check which approvals have been granted
 
 ### Writing State
 
@@ -187,14 +175,6 @@ At the **end of every loop iteration**:
       "gherkin": { "pass": 18, "fail": 1 },
       "playwright": { "pass": 12, "fail": 2 }
     }
-  },
-  "humanGates": {
-    "phase0-approved": false,
-    "prd-approved": false,
-    "frd-approved": false,
-    "gherkin-approved": false,
-    "implementation-approved": false,
-    "deployment-approved": false
   },
   "lastUpdated": "2026-02-09T14:30:00Z"
 }
@@ -231,58 +211,10 @@ Append every significant action to `.spec2cloud/audit.log`. Never overwrite — 
 [2026-02-09T14:30:00Z] phase=gherkin action=phase-complete result=transition-to-test-generation
 ```
 
-**Every human gate event:**
-```
-[2026-02-09T14:35:00Z] phase=gherkin action=human-gate result=approved
-[2026-02-09T14:35:00Z] phase=spec-refinement action=human-gate result=rejected feedback="missing error states for auth"
-```
-
 **Every error:**
 ```
 [2026-02-09T14:40:00Z] phase=deployment action=azd-provision result=error message="quota exceeded in eastus"
 ```
-
----
-
-## 5. Human Gate Protocol
-
-Human gates exist at the exit of Phases 0, 1, 2, 4, and 5. Phase 3 has no human gate.
-
-### How to Pause
-
-When you reach a human gate:
-
-1. **Summarize what was done.** Present a concise summary of the phase:
-   - Phase 0: List all generated/verified files and scaffolding
-   - Phase 1: List all FRDs with their key decisions and open questions
-   - Phase 2: List all `.feature` files with scenario counts per FRD
-   - Phase 4: Link to the PR, list test results (pass/fail counts)
-   - Phase 5: Deployment URL, smoke test results
-
-2. **State what's next.** Tell the human what the next phase will do.
-
-3. **Ask for approval.** Explicitly ask: "Approve to proceed to Phase X, or provide feedback to iterate."
-
-4. **Wait.** Do not proceed until the human responds.
-
-### Recording Approval
-
-When the human approves:
-1. Set `humanGates.<gate-name>` to `true` in `state.json`
-2. Log the approval in `audit.log`
-3. Advance `currentPhase` to the next phase
-4. Continue the Ralph loop
-
-### On Rejection
-
-When the human rejects or provides feedback:
-1. Log the rejection and feedback in `audit.log`
-2. Do **not** advance the phase
-3. Incorporate the feedback into the current phase
-4. Re-execute the relevant tasks with the feedback
-5. When done, present for approval again
-
----
 
 ## 6. Delegation Protocol
 

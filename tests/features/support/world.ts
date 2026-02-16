@@ -14,6 +14,14 @@ export class CustomWorld extends World {
   scenarioName = '';
   stepIndex = 0;
 
+  // Game-specific state for API testing
+  apiBaseUrl: string = process.env.API_URL || 'http://localhost:5001';
+  apiResponse: globalThis.Response | null = null;
+  responseBody: any = null;
+  sessionId: string = '';
+  caseId: string = '';
+  isApiScenario: boolean = false;
+
   async openBrowser() {
     this.browser = await chromium.launch();
     this.context = await this.browser.newContext({

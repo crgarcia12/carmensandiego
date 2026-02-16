@@ -13,17 +13,32 @@ Before(async function (this: CustomWorld, { pickle, gherkinDocument }) {
   this.featureName = gherkinDocument?.feature?.name || 'unknown-feature';
   this.scenarioName = pickle.name || 'unknown-scenario';
   this.stepIndex = 0;
-  await this.openBrowser();
+
+  // Detect if scenario is API-only (tagged @api but not @ui)
+  const tags = pickle.tags?.map((t) => t.name) || [];
+  const featureTags = gherkinDocument?.feature?.tags?.map((t) => t.name) || [];
+  const allTags = [...tags, ...featureTags];
+  const hasUiTag = allTags.includes('@ui');
+  const hasApiTag = allTags.includes('@api');
+
+  this.isApiScenario = hasApiTag && !hasUiTag;
+  this.apiBaseUrl = process.env.API_URL || 'http://localhost:5001';
+
+  if (!this.isApiScenario) {
+    await this.openBrowser();
+  }
 });
 
 AfterStep(async function (this: CustomWorld, { pickleStep, result }) {
   this.stepIndex++;
-  const stepText = pickleStep?.text || `step-${this.stepIndex}`;
-  await this.takeStepScreenshot(stepText);
+  if (!this.isApiScenario) {
+    const stepText = pickleStep?.text || `step-${this.stepIndex}`;
+    await this.takeStepScreenshot(stepText);
+  }
 });
 
 After(async function (this: CustomWorld, { pickle, result }) {
-  if (this.page) {
+  if (!this.isApiScenario && this.page) {
     const status = result?.status === 'PASSED' ? 'final' : 'failure';
     const dir = this.screenshotDir;
     fs.mkdirSync(dir, { recursive: true });
@@ -36,5 +51,7 @@ After(async function (this: CustomWorld, { pickle, result }) {
       // Browser may already be closed
     }
   }
-  await this.closeBrowser();
+  if (!this.isApiScenario) {
+    await this.closeBrowser();
+  }
 });
