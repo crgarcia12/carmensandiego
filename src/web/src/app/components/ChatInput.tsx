@@ -32,8 +32,13 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
     [handleSend]
   );
 
+  const MAX_CHARS = 280;
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setValue(e.target.value);
+    const newValue = e.target.value;
+    if (newValue.length <= MAX_CHARS) {
+      setValue(newValue);
+    }
     // Auto-resize
     const ta = e.target;
     ta.style.height = 'auto';
@@ -41,7 +46,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   };
 
   return (
-    <div className="flex items-end gap-2 p-4 border-t border-gray-200 bg-white">
+    <div className="relative flex items-end gap-2 p-3 border-t border-gray-700 bg-gray-800">
       <textarea
         ref={textareaRef}
         role="textbox"
@@ -53,7 +58,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         disabled={disabled}
         placeholder="Type a message..."
         rows={1}
-        className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="flex-1 resize-none rounded-xl border border-gray-600 bg-gray-900 text-gray-100 px-4 py-2.5 text-sm focus:border-yellow-400 focus:outline-none focus:ring-1 focus:ring-yellow-400 disabled:bg-gray-800 disabled:cursor-not-allowed placeholder-gray-500"
       />
       <button
         type="button"
@@ -63,8 +68,8 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         aria-disabled={disabled || isEmpty}
         className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
           disabled || isEmpty
-            ? 'bg-gray-300 cursor-not-allowed text-white'
-            : 'bg-blue-600 text-white hover:bg-blue-700'
+            ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+            : 'bg-yellow-400 text-gray-900 hover:bg-yellow-300'
         }`}
       >
         <svg
@@ -76,6 +81,9 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
         </svg>
       </button>
+      <span className="absolute bottom-1 right-14 text-xs text-gray-500" style={{ fontFamily: 'monospace' }}>
+        {value.length}/{MAX_CHARS}
+      </span>
     </div>
   );
 }

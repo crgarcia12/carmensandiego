@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "spec2cloud App",
-  description: "spec2cloud shell template — define your PRD and deploy",
+  title: "Carmen Sandiego — Web Edition",
+  description: "Track stolen treasures across the globe in this detective adventure game",
 };
 
 export default function RootLayout({
