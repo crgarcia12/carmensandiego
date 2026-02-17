@@ -48,7 +48,7 @@ public static class NpcEndpoints
         }
 
         var (npcMessage, messageCount, remainingMessages, error, code) =
-            npcChatService.Chat(gameCase, npcId, message);
+            await npcChatService.ChatAsync(gameCase, npcId, message, context.RequestAborted);
 
         if (npcMessage == null)
         {

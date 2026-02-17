@@ -123,6 +123,17 @@ Progress is tracked in `.spec2cloud/state.json` and `.spec2cloud/audit.log`. The
 | BDD Tests | `npm run test:cucumber` | Run Cucumber.js Gherkin tests |
 | All Tests | `npm run test:all` | Run all test suites |
 
+## Optional: Power NPC dialog with GitHub Models
+
+NPC chat can call GitHub Models inference when enabled in the API configuration.
+
+1. Set a token with `models:read` scope in one of: `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_TOKEN`.
+2. Enable with environment variable `GitHubModels__Enabled=true` (or set `GitHubModels:Enabled` in config).
+3. Optionally override `GitHubModels__Model` and `GitHubModels__Endpoint`.
+4. If no token environment variable is set, the API also attempts `gh auth token` as a fallback.
+
+If disabled or if the model request fails, the API automatically falls back to built-in NPC responses.
+
 ## Testing Strategy
 
 spec2cloud generates a 4-layer test pyramid:

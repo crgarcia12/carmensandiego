@@ -47,3 +47,63 @@ body {
     rgba(0, 0, 0, 0.05) 4px
   );
 }
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes grid-pan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 120px 120px;
+  }
+}
+
+@keyframes slide-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.float-gentle {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: pulse-glow 4.5s ease-in-out infinite;
+}
+
+.city-grid-overlay {
+  background-image:
+    linear-gradient(rgba(251, 191, 36, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(251, 191, 36, 0.14) 1px, transparent 1px);
+  background-size: 36px 36px;
+  animation: grid-pan 28s linear infinite;
+}
+
+.slide-fade-in {
+  animation: slide-fade-in 220ms ease-out both;
+}

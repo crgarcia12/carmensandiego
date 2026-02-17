@@ -57,9 +57,16 @@ export function useSession() {
 
   const storeCaseId = useCallback((id: string) => {
     setCaseId(id);
-    if (session) persist(session.id, id);
+    // Read session ID from localStorage to avoid stale closure over session state
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (stored) {
+      try {
+        const parsed: StoredState = JSON.parse(stored);
+        persist(parsed.sessionId, id);
+      } catch { /* ignore */ }
+    }
     localStorage.setItem(CASE_KEY, id);
-  }, [session, persist]);
+  }, [persist]);
 
   const clearSession = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);

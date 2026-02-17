@@ -6,6 +6,7 @@ import GameNav from '../components/GameNav';
 import CityBackground from '../components/CityBackground';
 import NpcList from '../components/NpcList';
 import NpcChat from '../components/NpcChat';
+import PromptTracePanel from '../components/PromptTracePanel';
 import TravelPanel from '../components/TravelPanel';
 import { useSession } from '../hooks/useSession';
 import { useGame } from '../hooks/useGame';
@@ -98,15 +99,18 @@ export default function CityPage() {
       <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Desktop: 3-column layout */}
         <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
-          {/* Left: NPCs */}
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-            {cityData && (
-              <NpcList
-                npcs={cityData.npcs}
-                activeNpcId={activeNpc?.id || null}
-                onSelect={handleSelectNpc}
-              />
-            )}
+          {/* Left: prompt log + NPCs */}
+          <div className="space-y-4">
+            <PromptTracePanel messages={messages} />
+            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              {cityData && (
+                <NpcList
+                  npcs={cityData.npcs}
+                  activeNpcId={activeNpc?.id || null}
+                  onSelect={handleSelectNpc}
+                />
+              )}
+            </div>
           </div>
 
           {/* Center: Chat */}

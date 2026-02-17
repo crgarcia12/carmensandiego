@@ -7,17 +7,17 @@ import { useGame } from './hooks/useGame';
 
 export default function Home() {
   const router = useRouter();
-  const { session, caseId, loading, createSession, storeCaseId } = useSession();
+  const { session, caseId, loading, createSession, storeCaseId, clearSession } = useSession();
   const { startCase, loading: gameLoading } = useGame();
 
   const handleStartCase = async () => {
-    let activeSession = session;
-    if (!activeSession) {
-      activeSession = await createSession();
-    }
-    if (!activeSession) return;
+    // Always start fresh — clear any existing session/case
+    clearSession();
 
-    const newCase = await startCase(activeSession.id);
+    const newSession = await createSession();
+    if (!newSession) return;
+
+    const newCase = await startCase(newSession.id);
     if (newCase) {
       storeCaseId(newCase.id);
       router.push('/briefing');
