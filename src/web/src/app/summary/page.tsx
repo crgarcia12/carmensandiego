@@ -24,7 +24,7 @@ export default function SummaryPage() {
 
   if (loading || !summary) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="dos-screen min-h-screen text-white">
         <GameNav showDossier={false} />
         <div className="flex items-center justify-center h-96">
           <p className="text-yellow-400 animate-pulse" style={{ fontFamily: 'monospace' }}>Loading case summary...</p>
@@ -36,7 +36,7 @@ export default function SummaryPage() {
   const isWin = summary.outcome === 'won';
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="dos-screen min-h-screen text-white">
       <GameNav showDossier={false} />
 
       <div className="max-w-2xl mx-auto px-4 py-8">

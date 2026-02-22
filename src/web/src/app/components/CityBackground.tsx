@@ -3,15 +3,6 @@
 import React from 'react';
 import Image from 'next/image';
 
-const continentGradients: Record<string, string> = {
-  'Europe': 'from-blue-800 to-indigo-900',
-  'Asia': 'from-red-800 to-orange-900',
-  'Africa': 'from-amber-700 to-yellow-900',
-  'North America': 'from-emerald-800 to-teal-900',
-  'South America': 'from-green-700 to-lime-900',
-  'Oceania': 'from-cyan-700 to-blue-900',
-};
-
 interface CityBackgroundProps {
   cityName: string;
   description: string;
@@ -19,31 +10,33 @@ interface CityBackgroundProps {
 }
 
 export default function CityBackground({ cityName, description, continent }: CityBackgroundProps) {
-  const gradient = continentGradients[continent] || 'from-gray-800 to-gray-900';
-
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${gradient} p-6 text-white border-b-4 border-yellow-400`}>
-      <div className="absolute inset-0 city-grid-overlay opacity-40 pointer-events-none" />
-      <div className="absolute -top-14 -right-14 w-40 h-40 rounded-full bg-yellow-400/20 blur-2xl pulse-glow pointer-events-none" />
-      <div className="absolute -bottom-12 -left-10 w-32 h-32 rounded-full bg-amber-300/20 blur-2xl pulse-glow pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-        <div>
-          <h2 className="text-3xl font-bold tracking-wide uppercase" style={{ fontFamily: 'monospace' }}>
-            📍 {cityName}
-          </h2>
-          <p className="mt-1 text-sm opacity-80">{continent}</p>
-          <p className="mt-2 text-sm leading-relaxed opacity-90">{description}</p>
-        </div>
-        <div className="w-full md:w-[260px] rounded-lg border border-yellow-300/40 bg-gray-950/40 p-2 float-gentle">
-          <Image
-            src="/detective-briefing-board.svg"
-            alt="Detective briefing board illustration"
-            width={260}
-            height={146}
-            className="w-full h-auto rounded-md opacity-95"
-            priority
-          />
+    <div className="max-w-7xl mx-auto px-4 pt-3">
+      <div className="acme-bezel p-2">
+        <div className="acme-panel relative overflow-hidden p-3">
+          <div className="absolute inset-0 city-grid-overlay opacity-15 pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-400 mb-1" style={{ fontFamily: 'monospace' }}>
+                Location Feed
+              </p>
+              <h2 className="text-3xl font-bold tracking-wide uppercase text-yellow-300" style={{ fontFamily: 'monospace' }}>
+                {cityName}
+              </h2>
+              <p className="mt-1 text-sm text-cyan-300">{continent}</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-100">{description}</p>
+            </div>
+            <div className="acme-bezel w-full md:w-[320px] p-1">
+              <Image
+                src="/detective-briefing-board.svg"
+                alt="Detective briefing board illustration"
+                width={320}
+                height={180}
+                className="w-full h-auto border-2 border-black"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

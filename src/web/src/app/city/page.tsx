@@ -57,7 +57,7 @@ export default function CityPage() {
 
   if (loading && !cityData) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="dos-screen min-h-screen text-white">
         <GameNav remainingSteps={caseData?.remainingSteps} caseId={caseId} />
         <div className="flex items-center justify-center h-96">
           <p className="text-yellow-400 animate-pulse" style={{ fontFamily: 'monospace' }}>Arriving at destination...</p>
@@ -67,7 +67,7 @@ export default function CityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="dos-screen min-h-screen text-white">
       <GameNav remainingSteps={caseData?.remainingSteps} caseId={caseId} />
 
       {cityData && (
@@ -79,30 +79,32 @@ export default function CityPage() {
       )}
 
       {/* Mobile tab navigation */}
-      <div className="lg:hidden flex border-b border-gray-700">
+      <div className="lg:hidden acme-bezel mx-4 mt-3 p-1 flex gap-1">
         {(['city', 'chat', 'travel'] as MobileTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setMobileTab(tab)}
-            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+            className={`flex-1 py-2 text-xs font-bold uppercase tracking-[0.14em] transition-colors ${
               mobileTab === tab
-                ? 'text-yellow-400 border-b-2 border-yellow-400 bg-gray-800'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'acme-panel text-yellow-300'
+                : 'acme-command-btn text-[#1c1307] hover:brightness-105'
             }`}
             style={{ fontFamily: 'monospace' }}
           >
-            {tab === 'city' ? '🏙️ City' : tab === 'chat' ? '💬 Chat' : '✈️ Travel'}
+            {tab === 'city' ? 'City' : tab === 'chat' ? 'Chat' : 'Travel'}
           </button>
         ))}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Desktop: 3-column layout */}
-        <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
+        <div className="hidden lg:grid lg:grid-cols-[250px_minmax(0,1fr)_280px] lg:gap-3">
           {/* Left: prompt log + NPCs */}
           <div className="space-y-4">
-            <PromptTracePanel messages={messages} />
-            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div className="acme-bezel p-2">
+              <PromptTracePanel messages={messages} />
+            </div>
+            <div className="acme-bezel p-2">
               {cityData && (
                 <NpcList
                   npcs={cityData.npcs}
@@ -114,7 +116,7 @@ export default function CityPage() {
           </div>
 
           {/* Center: Chat */}
-          <div className="min-h-[400px]">
+          <div className="min-h-[420px] acme-bezel p-2">
             {activeNpc ? (
               <NpcChat
                 npcName={activeNpc.name}
@@ -123,7 +125,7 @@ export default function CityPage() {
                 onSend={handleSendMessage}
               />
             ) : (
-              <div className="flex items-center justify-center h-full bg-gray-900 rounded-lg border-2 border-gray-700">
+              <div className="acme-panel flex items-center justify-center h-full">
                 <p className="text-gray-500 text-sm" style={{ fontFamily: 'monospace' }}>
                   Select a person to interview
                 </p>
@@ -132,7 +134,7 @@ export default function CityPage() {
           </div>
 
           {/* Right: Travel */}
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+          <div className="acme-bezel p-2">
             {cityData && (
               <TravelPanel
                 options={cityData.travelOptions}
@@ -146,7 +148,7 @@ export default function CityPage() {
         {/* Mobile: Tab content */}
         <div className="lg:hidden">
           {mobileTab === 'city' && cityData && (
-            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div className="acme-bezel p-2">
               <NpcList
                 npcs={cityData.npcs}
                 activeNpcId={activeNpc?.id || null}
@@ -156,7 +158,7 @@ export default function CityPage() {
           )}
 
           {mobileTab === 'chat' && (
-            <div className="min-h-[400px]">
+            <div className="min-h-[400px] acme-bezel p-2">
               {activeNpc ? (
                 <NpcChat
                   npcName={activeNpc.name}
@@ -165,7 +167,7 @@ export default function CityPage() {
                   onSend={handleSendMessage}
                 />
               ) : (
-                <div className="flex items-center justify-center h-96 bg-gray-900 rounded-lg border-2 border-gray-700">
+                <div className="acme-panel flex items-center justify-center h-96">
                   <p className="text-gray-500 text-sm" style={{ fontFamily: 'monospace' }}>
                     Select a person from the City tab
                   </p>
@@ -175,7 +177,7 @@ export default function CityPage() {
           )}
 
           {mobileTab === 'travel' && cityData && (
-            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div className="acme-bezel p-2">
               <TravelPanel
                 options={cityData.travelOptions}
                 onTravel={handleTravel}

@@ -35,17 +35,17 @@ export default function DossierPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="dos-screen min-h-screen text-white">
       <GameNav remainingSteps={caseData?.remainingSteps} caseId={caseId} showDossier={false} />
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-yellow-400" style={{ fontFamily: 'monospace' }}>
-            📋 Suspect Dossier
+        <div className="acme-bezel p-2 mb-6 flex items-center justify-between">
+          <h2 className="acme-panel px-3 py-2 text-lg font-bold text-yellow-300 uppercase tracking-[0.2em]" style={{ fontFamily: 'monospace' }}>
+            Suspect Dossier
           </h2>
           <button
             onClick={() => router.back()}
-            className="px-3 py-1.5 rounded-md text-xs font-semibold bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+            className="acme-command-btn px-3 py-1.5 text-xs font-semibold hover:brightness-110 transition-colors"
           >
             ← Back to City
           </button>

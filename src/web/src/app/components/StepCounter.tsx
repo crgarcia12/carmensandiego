@@ -9,11 +9,11 @@ interface StepCounterProps {
 
 export default function StepCounter({ remainingSteps, totalSteps = 10 }: StepCounterProps) {
   const used = totalSteps - remainingSteps;
-  const color = remainingSteps <= 3 ? (remainingSteps <= 1 ? 'text-red-400' : 'text-amber-400') : 'text-green-400';
+  const color = remainingSteps <= 3 ? (remainingSteps <= 1 ? 'text-red-400' : 'text-amber-300') : 'text-green-300';
 
   return (
-    <div className={`font-bold text-sm ${color}`} style={{ fontFamily: 'monospace' }}>
-      Steps: {used}/{totalSteps} (🦶 {remainingSteps} left)
+    <div className={`acme-panel px-2 py-1 font-bold text-xs ${color}`} style={{ fontFamily: 'monospace' }}>
+      Steps: {used}/{totalSteps} | Left: {remainingSteps}
     </div>
   );
 }

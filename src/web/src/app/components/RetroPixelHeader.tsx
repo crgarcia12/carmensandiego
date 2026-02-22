@@ -9,16 +9,22 @@ interface RetroPixelHeaderProps {
 
 export default function RetroPixelHeader({ title, subtitle }: RetroPixelHeaderProps) {
   return (
-    <div className="text-center py-8">
-      <div className="inline-block border-4 border-yellow-400 rounded-lg p-6 bg-gray-900 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
+    <div className="text-center py-7">
+      <div className="retro-border inline-block bg-gray-900 px-8 py-5">
         <h1
-          className="text-4xl md:text-5xl font-bold text-yellow-400 tracking-widest uppercase"
-          style={{ fontFamily: 'monospace', textShadow: '3px 3px 0 #1a1a2e' }}
+          className="text-4xl md:text-5xl font-bold text-yellow-400 tracking-[0.22em] uppercase leading-tight"
+          style={{
+            fontFamily: 'var(--font-geist-mono), monospace',
+            textShadow: '2px 2px 0 #2c1f00, -1px -1px 0 #000',
+          }}
         >
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-2 text-sm text-cyan-400 tracking-wider uppercase" style={{ fontFamily: 'monospace' }}>
+          <p
+            className="mt-3 text-xs text-cyan-400 tracking-[0.3em] uppercase"
+            style={{ fontFamily: 'var(--font-geist-mono), monospace' }}
+          >
             {subtitle}
           </p>
         )}

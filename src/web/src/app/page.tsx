@@ -30,14 +30,14 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+      <div className="dos-screen flex min-h-screen items-center justify-center">
         <p className="text-yellow-400 animate-pulse" style={{ fontFamily: 'monospace' }}>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-950 px-4">
+    <div className="dos-screen flex min-h-screen flex-col items-center justify-center px-4">
       <RetroPixelHeader title="Carmen Sandiego" subtitle="Web Edition" />
 
       <div className="mt-8 space-y-4 w-full max-w-sm">

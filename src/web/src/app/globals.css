@@ -1,21 +1,149 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #e5e7eb;
+  --background: #04050f;
+  --foreground: #f5df7b;
+  --panel: #0b1329;
+  --panel-border: #e5c04e;
+  --panel-border-dark: #3c2b09;
+  --accent-cyan: #66e6ff;
+  --acme-bezel-light: #f0dcc0;
+  --acme-bezel-mid: #c8a277;
+  --acme-bezel-dark: #704923;
+  --acme-paper: #e8dd7a;
+  --acme-ink: #1c1307;
+  --acme-screen: #050507;
+  --acme-screen-border: #2f1c0a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-mono);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.28) 0,
+      rgba(0, 0, 0, 0.28) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(circle at top, #1c2a5d 0%, #090d1f 36%, #04050f 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-mono), "Courier New", Courier, monospace;
+  letter-spacing: 0.02em;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+.dos-screen {
+  background:
+    radial-gradient(circle at 10% 12%, rgba(120, 164, 255, 0.2), transparent 24%),
+    linear-gradient(180deg, #2a3a72 0%, #111630 40%, #07090f 100%);
+}
+
+button,
+input,
+textarea,
+select {
+  border-radius: 0 !important;
+  font-family: var(--font-geist-mono), "Courier New", Courier, monospace;
+}
+
+button {
+  letter-spacing: 0.08em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+[class*="rounded"] {
+  border-radius: 0 !important;
+}
+
+.acme-bezel {
+  background: linear-gradient(180deg, var(--acme-bezel-light) 0%, var(--acme-bezel-mid) 100%);
+  border: 2px solid #f6e4cc;
+  box-shadow:
+    inset 1px 1px 0 #fff8e9,
+    inset -2px -2px 0 var(--acme-bezel-dark),
+    2px 2px 0 rgba(0, 0, 0, 0.65);
+}
+
+.acme-panel {
+  background: var(--acme-screen);
+  border: 2px solid var(--acme-screen-border);
+  box-shadow: inset 0 0 0 1px #523518;
+  color: var(--foreground);
+}
+
+.acme-panel-inset {
+  background: #0a0a0d;
+  border: 1px solid #6a471f;
+}
+
+.acme-command-btn {
+  background: linear-gradient(180deg, #f0dcc0 0%, #bf976d 100%);
+  border: 2px solid #f8e6cd;
+  box-shadow:
+    inset 1px 1px 0 #fff6e7,
+    inset -1px -1px 0 #6f4825;
+  color: var(--acme-ink);
+}
+
+.acme-command-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.acme-note-paper {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 22px,
+      rgba(95, 84, 28, 0.28) 22px,
+      rgba(95, 84, 28, 0.28) 23px
+    ),
+    var(--acme-paper);
+  border: 2px solid #5e4a1d;
+  color: var(--acme-ink);
+}
+
+/* Shift utility palette toward DOS-era tones */
+.bg-gray-950 {
+  background-color: #050715 !important;
+}
+
+.bg-gray-900 {
+  background-color: var(--panel) !important;
+}
+
+.bg-gray-800 {
+  background-color: #131b36 !important;
+}
+
+.bg-gray-700 {
+  background-color: #1a2548 !important;
+}
+
+.border-gray-700,
+.border-gray-600 {
+  border-color: #33406d !important;
+}
+
+.text-yellow-400 {
+  color: #f5df7b !important;
+}
+
+.text-cyan-400 {
+  color: #66e6ff !important;
 }
 
 /* Hide Next.js route announcer so it doesn't interfere with aria-live assertions */
@@ -28,9 +156,10 @@ body {
 /* Retro pixel border effect */
 .retro-border {
   box-shadow:
-    inset 0 0 0 2px #facc15,
-    inset 0 0 0 4px #030712,
-    inset 0 0 0 6px #facc15;
+    inset 0 0 0 2px var(--panel-border),
+    inset 0 0 0 4px #050715,
+    inset 0 0 0 6px var(--panel-border-dark),
+    0 0 0 1px #000;
 }
 
 /* Retro scanline overlay */
@@ -98,9 +227,9 @@ body {
 
 .city-grid-overlay {
   background-image:
-    linear-gradient(rgba(251, 191, 36, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(251, 191, 36, 0.14) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(rgba(245, 223, 123, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 223, 123, 0.18) 1px, transparent 1px);
+  background-size: 24px 24px;
   animation: grid-pan 28s linear infinite;
 }
 
