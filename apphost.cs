@@ -15,7 +15,7 @@ var api = builder.AddCSharpApp("api", "./src/api")
           .WithReference(cosmos);
 
 builder.AddViteApp("web", "./src/web")
-    .WithEnvironment("BACKEND_URL", api.GetEndpoint("http"))
+    .WithEnvironment("NEXT_PUBLIC_API_URL", api.GetEndpoint("http"))
     .WithReference(api)
     .WaitFor(api)
     .PublishAsDockerFile();
